@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asteroid Impact Simulation - Impactor-2025</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+/* ... Orijinal CSS kodunuz ... */
+.warning-banner { 
+    position: fixed; 
+    top: 70px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    background: linear-gradient(135deg, #ff0000 0%, #ff4500 100%); 
+    padding: 8px 20px; 
+    border-radius: 8px; 
+    z-index: 1500; 
+    animation: pulse 2s infinite; 
+    max-width: 500px;
+    text-align: center;
+    /* Erken uyarı banner'ı için stil */
+}
+.hidden { display: none !important; }
+
+.countdown-display { 
+    font-size: 16px; 
+    font-weight: bold; 
+    color: #ffff00; 
+    margin: 3px 0; 
+    /* Geri sayım için büyük sarı yazı */
+}
+
+@keyframes pulse { 
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 69, 0, 0.7); } 
+    50% { box-shadow: 0 0 20px rgba(255, 69, 0, 1); } 
+}
+body { 
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    color: #fff; 
+    overflow: hidden;
+}
+.leaflet-popup-content-wrapper { background: rgba(25, 25, 46, 0.9); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.leaflet-popup-content { margin: 15px; line-height: 1.6; }
+.leaflet-popup-tip { background: rgba(25, 25, 46, 0.9); }
+.popup-button { width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #ff4500 0%, #ff6347 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: transform 0.2s; }
+.popup-button:hover { transform: scale(1.05); }
+/* DÜZENLENEN ÜST NAVİGASYON ALANI */
+.top-nav-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1001;
+}
+.tab-buttons { display: flex; justify-content: center; margin: 0; padding: 15px 0; }
+.tab-buttons button { padding: 12px 30px; margin: 0 5px; cursor: pointer; background: linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%); color: #fff; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease; }
+.tab-buttons button:hover { background: linear-gradient(135deg, #3a3a4e 0%, #2a2a3e 100%); border-color: rgba(255, 255, 255, 0.3); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 69, 0, 0.3); }
+.tab-buttons button.active { background: linear-gradient(135deg, #ff4500 0%, #ff6347 100%); border-color: #ff4500; box-shadow: 0 5px 20px rgba(255, 69, 0, 0.5); }
+.control-panel { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); border-radius: 12px; padding: 20px; z-index: 10; max-width: 300px; border: 1px solid rgba(255, 255, 255, 0.1); max-height: calc(100vh - 120px); overflow-y: auto; }
+.control-panel h3 { margin-top: 0; color: #ff4500; font-size: 18px; border-bottom: 2px solid #ff4500; padding-bottom: 10px; }
+.control-group { margin: 15px 0; }
+.control-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #ccc; }
+.control-group input[type="range"] { width: 100%; margin: 5px 0; }
+.btn-primary { width: 100%; padding: 12px; margin: 5px 0; background: linear-gradient(135deg, #ff4500 0%, #ff6347 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 69, 0, 0.5); }
+.btn-secondary { width: 100%; padding: 10px; margin: 5px 0; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+.info-display { position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); border-radius: 12px; padding: 20px; z-index: 10; min-width: 250px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.info-display h3 { margin-top: 0; color: #ff4500; font-size: 18px; }
+.info-item { margin: 10px 0; font-size: 14px; }
+.info-item strong { color: #ff4500; }
+.tab-content { display: none; width: 100%; height: calc(100vh - 70px); position: relative; }
+.tab-content.active { display: block; }
+#map { width: 100%; height: 100%; background-color: #0a0a0a; }
+.legend { position: absolute; bottom: 20px; left: 20px; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); padding: 15px; border-radius: 8px; z-index: 1000; border: 1px solid rgba(255, 255, 255, 0.1); }
+.legend h4 { margin: 0 0 10px 0; color: #ff4500; }
+.legend-item { margin: 5px 0; display: flex; align-items: center; }
+.legend-color { width: 20px; height: 20px; border-radius: 50%; margin-right: 10px; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+.modal-content { background: #1a1a2e; padding: 40px; border-radius: 15px; max-width: 600px; text-align: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.modal-content h2 { color: #ff4500; }
+.modal-content p { line-height: 1.7; margin: 20px 0; }
+.speed-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+.speed-controls button {
+    width: 23%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.speed-controls button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+.speed-controls button.active {
+    background: #ff4500;
+    border-color: #ff4500;
+    font-weight: bold;
+    transform: scale(1.05);
+}
+/* DÜZENLENEN DİL DEĞİŞTİRME BUTONU */
+.lang-switcher {
+    position: absolute;
+    right: 20px; 
+}
+.lang-switcher button {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.lang-switcher button:hover {
+    background: rgba(255,255,255,0.2);
+}
+</style>
+</head>
+<body>
+
+<div id="welcomeModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 data-lang-key="welcome_title">🚨 UYARI: Impactor-2025 Yaklaşıyor!</h2>
+        <p data-lang-key="welcome_p1">Gezegen Savunma Sistemi, "Impactor-2025" adlı potansiyel olarak tehlikeli bir asteroidin Dünya'ya çarpma rotasında olduğunu tespit etti. Göreviniz, bu simülatörü kullanarak çarpışma senaryolarını analiz etmek, olası sonuçları tahmin etmek ve gezegeni kurtarmak için bir saptırma stratejisi geliştirmektir.</p>
+        <p data-lang-key="welcome_p2"><strong>Hazır mısın insanlığı kurtarmaya?</strong></p>
+        <button class="btn-primary" style="padding: 15px 30px; font-size: 18px;" onclick="closeWelcomeModal()" data-lang-key="welcome_button">Görevi Başlat!</button>
+    </div>
+</div>
+
+<div class="top-nav-wrapper">
+    <div class="tab-buttons">
+        <button class="tab" onclick="showTab(1)" data-lang-key="tab_sim">🌍 3D Simülasyon</button>
+        <button class="tab active" onclick="showTab(2)" data-lang-key="tab_map">🗺️ Küresel Etki Haritası</button>
+        <button class="tab" onclick="showTab(3)" data-lang-key="tab_data">📊 Veri Analizi</button>
+    </div>
+    <div class="lang-switcher">
+        <button onclick="switchLanguage()">EN / TR</button>
+    </div>
+</div>
+
+<div id="warningBanner" class="warning-banner hidden">
+    <div>⚠️ <span data-lang-key="warn_title">ERKEN UYARI SİSTEMİ</span> ⚠️</div>
+    <div id="warningText">-</div>
+    <div class="countdown-display" id="countdownDisplay">-</div>
+    <div><span data-lang-key="warn_location">Yaklaşma Konumu</span>: <span id="impactLocation">-</span></div>
+</div>
+
+<div id="tab1" class="tab-content">
+    <div id="sim-container" style="width: 100%; height: 100%;"></div>
+    <div class="control-panel">
+        <h3 data-lang-key="cp_title">⚙️ Kontrol Paneli</h3>
+        <div class="control-group">
+            <label title="Asteroidin tahmini çapı. Boyut, çarpma enerjisini doğrudan etkiler." data-lang-key="cp_diameter_label">Asteroit Çapı: <span id="diameterValue">50</span> m</label>
+            <input type="range" id="diameterSlider" min="10" max="10000" value="50" oninput="updateDiameter(this.value)">
+        </div>
+        <div class="control-group">
+            <label title="Asteroidin Dünya'ya göre hızı. Hız, kinetik enerjinin en önemli bileşenidir (E = 1/2 * m * v^2)." data-lang-key="cp_speed_label">Hız: <span id="speedValue">20</span> km/s</label>
+            <input type="range" id="speedSlider" min="10" max="70" value="20" oninput="updateSpeed(this.value)">
+        </div>
+        <div class="control-group">
+            <label title="Asteroidin atmosfere giriş açısı. 90 derece dikey, daha düşük açılar daha yatay bir girişi ifade eder." data-lang-key="cp_angle_label">Giriş Açısı: <span id="angleValue">45</span>°</label>
+            <input type="range" id="angleSlider" min="15" max="90" value="45" oninput="updateAngle(this.value)">
+        </div>
+        
+        <div class="control-group">
+            <label data-lang-key="cp_simspeed_label">Simülasyon Hızı:</label>
+            <div class="speed-controls">
+                <button id="speedBtn05" onclick="setSimulationSpeed(0.5)">0.5x</button>
+                <button id="speedBtn1" class="active" onclick="setSimulationSpeed(1)">1x</button>
+                <button id="speedBtn2" onclick="setSimulationSpeed(2)">2x</button>
+                <button id="speedBtn4" onclick="setSimulationSpeed(4)">4x</button>
+            </div>
+        </div>
+        
+        <button class="btn-primary" onclick="startMeteor()" data-lang-key="cp_start_button">🚀 Simülasyonu Başlat</button>
+        <button class="btn-secondary" onclick="togglePause()" data-lang-key="cp_pause_button">⏸️ Duraklat/Devam</button>
+        <button class="btn-secondary" onclick="resetSimulation()" data-lang-key="cp_reset_button">🔄 Sıfırla</button>
+        <div style="margin-top:20px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.2);">
+            <h4 style="margin: 0 0 10px 0; color: #87ceeb;" data-lang-key="cp_deflect_title">🛡️ Saptırma Görevi</h4>
+            <p style="font-size:12px; color:#ccc; margin-top:0;" data-lang-key="cp_deflect_p">Asteroit Dünya'ya çarpmadan yörüngesini değiştirmek için kinetik çarpıcıyı kullan. Ne kadar erken o kadar iyi!</p>
+            <button class="btn-primary" style="background: linear-gradient(135deg, #00bfff 0%, #1e90ff 100%);" onclick="attemptDeflection()" data-lang-key="cp_deflect_button">💥 Kinetik Çarpıcıyı Ateşle</button>
+        </div>
+        <div id="neo-panel" style="margin-top:20px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.2);">
+            <h4 style="margin: 0 0 10px 0; color: #87ceeb;" data-lang-key="cp_threats_title">📡 Gerçek Zamanlı Tehditler (NASA)</h4>
+            <div id="neo-list-container">
+                <p style="font-size:12px; color:#ccc;" data-lang-key="cp_threats_loading">Veriler yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+    <div class="info-display">
+        <h3 data-lang-key="info_title">📈 Çarpma Bilgileri</h3>
+        <div class="info-item"><strong data-lang-key="info_name">İsim:</strong> <span id="nameInfo">-</span></div>
+        <div class="info-item"><strong data-lang-key="info_energy">Tahmini Enerji:</strong> <span id="energyInfo">-</span></div>
+        <div class="info-item"><strong data-lang-key="info_tnt">TNT Eşdeğeri:</strong> <span id="tntInfo">-</span></div>
+        <div class="info-item"><strong data-lang-key="info_crater">Krater Çapı:</strong> <span id="craterInfo">-</span></div>
+        <div class="info-item"><strong data-lang-key="info_impact_type">Potansiyel Etki:</strong> <span id="impactTypeInfo">-</span></div>
+        <div class="info-item"><strong data-lang-key="info_status">Durum:</strong> <span id="statusInfo">Hazır</span></div>
+        <div class="info-item" style="margin-top:15px; padding-top:10px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <strong data-lang-key="info_deflection_status">Saptırma Durumu:</strong> <span id="deflectionStatusInfo">-</span>
+        </div>
+    </div>
+</div>
+
+<div id="tab2" class="tab-content active">
+    <div id="map"></div>
+    <div class="legend">
+        <h4 data-lang-key="legend_title">Çarpma Şiddeti</h4>
+        <div class="legend-item"><div class="legend-color" style="background: #ffff00;"></div><span data-lang-key="legend_low">Düşük Enerji</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #ff9900;"></div><span data-lang-key="legend_medium">Orta Enerji</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #ff4500;"></div><span data-lang-key="legend_high">Yüksek Enerji</span></div>
+        <div class="legend-item"><div class="legend-color" style="border: 2px solid #87ceeb; width:16px; height:16px;"></div><span data-lang-key="legend_tsunami">Tsunami (Okyanus Çarpması)</span></div>
+    </div>
+</div>
+
+<div id="tab3" class="tab-content">
+    <div style="padding:40px; max-width:1200px; margin:0 auto; overflow-y:auto; height:calc(100vh - 70px);">
+        <h2 style="color:#ff4500;" data-lang-key="data_title">📊 Asteroit Tehdit Analizi</h2>
+        <div style="background: rgba(0,0,0,0.5); padding:30px; border-radius:12px; margin:20px 0;">
+            <h3 data-lang-key="data_risk_dist_title">Küresel Risk Dağılımı</h3>
+            <p><span data-lang-key="data_risk_dist_p1">Bu veri seti, geçmiş asteroit çarpmalarının konumlarını ve etkilerini içermektedir. Toplam</span> <strong id="totalMeteors">0</strong> <span data-lang-key="data_risk_dist_p2">çarpma kaydı analiz edilmiştir.</span></p>
+            <div style="margin:20px 0;">
+                <h4 data-lang-key="data_stats_title">Önemli İstatistikler:</h4>
+                <ul style="line-height:1.8;">
+                    <li><span data-lang-key="data_stats_max_energy">En büyük çarpma enerjisi:</span> <span id="maxEnergy">-</span></li>
+                    <li><span data-lang-key="data_stats_avg_crater">Ortalama krater çapı:</span> <span id="avgCrater">-</span></li>
+                    <li><span data-lang-key="data_stats_common_region">En yaygın etki bölgesi:</span> <span id="commonRegion" data-lang-key="data_stats_insufficient">Veri yetersiz</span></li>
+                </ul>
+            </div>
+            <div style="background: rgba(255,69,0,0.1); padding:20px; border-radius:8px; border-left:4px solid #ff4500;">
+                <h4 data-lang-key="data_risk_assess_title">⚠️ Risk Değerlendirmesi</h4>
+                <p data-lang-key="data_risk_assess_p">Asteroit tehditleri nadir olmakla birlikte, potansiyel etkileri son derece yıkıcı olabilir. NASA'nın DART projesi gibi saptırma teknolojileri, gezegenimizi korumak için kritik öneme sahiptir. Erken tespit sistemleri sayesinde tehlikeli asteroitler yıllar öncesinden belirlenerek gerekli önlemler alınabilir.</p>
+            </div>
+        </div>
+        <div style="background: rgba(0,0,0,0.5); padding:30px; border-radius:12px; margin:20px 0;">
+            <h3 data-lang-key="data_chart1_title">📈 Enerji Dağılım Grafiği (Tarihi Çarpmalar)</h3>
+            <canvas id="energyChart" style="background: rgba(0,0,0,0.2); border-radius:8px; padding:15px;"></canvas>
+        </div>
+        <div style="background: rgba(0,0,0,0.5); padding:30px; border-radius:12px; margin:20px 0;">
+            <h3 data-lang-key="data_chart2_title">📏 Çap & Krater İlişkisi (Tarihi Çarpmalar)</h3>
+            <canvas id="diameterChart" style="background: rgba(0,0,0,0.2); border-radius:8px; padding:15px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ===================================
+// DİL DESTEĞİ (YENİ)
+// ===================================
+const translations = {
+    en: {
+        welcome_title: "🚨 WARNING: Impactor-2025 is Approaching!",
+        welcome_p1: "The Planetary Defense System has detected a potentially hazardous asteroid, \"Impactor-2025\", on a collision course with Earth. Your mission is to use this simulator to analyze impact scenarios, predict potential outcomes, and develop a deflection strategy to save the planet.",
+        welcome_p2: "<strong>Are you ready to save humanity?</strong>",
+        welcome_button: "Start Mission!",
+        tab_sim: "🌍 3D Simulation",
+        tab_map: "🗺️ Global Impact Map",
+        tab_data: "📊 Data Analysis",
+        warn_title: "EARLY WARNING SYSTEM",
+        warn_location: "Approach Location",
+        warn_asteroid_detected: "asteroid detected!", // EKLENDİ
+        cp_title: "⚙️ Control Panel",
+        cp_diameter_label: "Asteroid Diameter: ",
+        cp_speed_label: "Velocity: ",
+        cp_angle_label: "Entry Angle: ",
+        cp_simspeed_label: "Simulation Speed:",
+        cp_start_button: "🚀 Start Simulation",
+        cp_pause_button: "⏸️ Pause/Resume",
+        cp_reset_button: "🔄 Reset",
+        cp_deflect_title: "🛡️ Deflection Mission",
+        cp_deflect_p: "Use the kinetic impactor to alter the asteroid's trajectory before it hits Earth. The earlier, the better!",
+        cp_deflect_button: "💥 Fire Kinetic Impactor",
+        cp_threats_title: "📡 Real-Time Threats (NASA)",
+        cp_threats_loading: "Loading data...",
+        info_title: "📈 Impact Information",
+        info_name: "Name:",
+        info_energy: "Estimated Energy:",
+        info_tnt: "TNT Equivalent:",
+        info_crater: "Crater Diameter:",
+        info_impact_type: "Potential Impact:",
+        info_status: "Status:",
+        info_deflection_status: "Deflection Status:",
+        legend_title: "Impact Severity",
+        legend_low: "Low Energy",
+        legend_medium: "Medium Energy",
+        legend_high: "High Energy",
+        legend_tsunami: "Tsunami (Ocean Impact)",
+        data_title: "📊 Asteroid Threat Analysis",
+        data_risk_dist_title: "Global Risk Distribution",
+        data_risk_dist_p1: "This dataset contains the locations and effects of past asteroid impacts. A total of",
+        data_risk_dist_p2: "impact records have been analyzed.",
+        data_stats_title: "Key Statistics:",
+        data_stats_max_energy: "Largest impact energy:",
+        data_stats_avg_crater: "Average crater diameter:",
+        data_stats_common_region: "Most common impact region:",
+        data_stats_insufficient: "Insufficient data",
+        data_risk_assess_title: "⚠️ Risk Assessment",
+        data_risk_assess_p: "Although rare, the potential effects of asteroid threats can be extremely devastating. Deflection technologies, like NASA's DART project, are critical for protecting our planet. Early detection systems can identify dangerous asteroids years in advance, allowing for necessary precautions to be taken.",
+        data_chart1_title: "📈 Energy Distribution (Historic Impacts)",
+        data_chart2_title: "📏 Diameter & Crater Relation (Historic Impacts)",
+        status_ready: "Ready",
+        status_reset: "System Reset. Awaiting Mission.",
+        status_paused: "Paused",
+        status_active: "Active",
+        status_sim_started: "Simulation started",
+        status_impact: "Impact occurred!",
+        status_threat_eliminated: "Threat Eliminated!",
+        deflect_standby: "Standby",
+        deflect_no_longer_possible: "Deflection no longer possible!",
+        deflect_success_trajectory: "Trajectory Successfully Altered!",
+        deflect_insufficient: "Deflection Effect Insufficient!",
+        deflect_fail: "FAILED",
+        deflect_success: "SUCCESSFUL!",
+        popup_diameter: "Diameter",
+        popup_velocity: "Velocity",
+        popup_energy: "Energy",
+        popup_button: "View Details & Simulate",
+        threats_none: "✅ No known hazardous asteroids at this time.",
+        threats_error: "❌ Could not connect to the backend.",
+        threats_error_msg: "Error",
+        threats_error_check: "Check:",
+        threats_error_check1: "1. Is the backend running? (python app.py)",
+        threats_error_check2: "2. Is port 5001 open?",
+        sim_from_neo_button: "Simulate",
+        impact_type_ocean: "Ocean Impact: Tsunami!",
+        impact_type_land: "Land Impact",
+        custom_sim: "Custom Simulation",
+        warn_countdown_calculating: "Calculating...",
+        warn_countdown_years: "ATTENTION! {years} years {remainingDays} days until impact!", // DÜZELTİLDİ
+        warn_countdown_days: "ATTENTION! {1090} days until impact!",
+        warn_countdown_hours: "ATTENTION! {hours} hours until impact!",
+        warn_countdown_default: "ATTENTION! Approximately 3 years until impact!",
+        warn_countdown_imminent: "IMPACT IMMINENT!",
+        warn_loc_determining: "Determining coordinates...",
+        warn_loc_distance: "Current distance: {dist}K km",
+        warn_loc_target: "Target Location: {lat}°, {lng}°"
+    },
+    tr: {
+        welcome_title: "🚨 UYARI: Impactor-2025 Yaklaşıyor!",
+        welcome_p1: "Gezegen Savunma Sistemi, \"Impactor-2025\" adlı potansiyel olarak tehlikeli bir asteroidin Dünya'ya çarpma rotasında olduğunu tespit etti. Göreviniz, bu simülatörü kullanarak çarpışma senaryolarını analiz etmek, olası sonuçları tahmin etmek ve gezegeni kurtarmak için bir saptırma stratejisi geliştirmektir.",
+        welcome_p2: "<strong>Hazır mısın insanlığı kurtarmaya?</strong>",
+        welcome_button: "Görevi Başlat!",
+        tab_sim: "🌍 3D Simülasyon",
+        tab_map: "🗺️ Küresel Etki Haritası",
+        tab_data: "📊 Veri Analizi",
+        warn_title: "ERKEN UYARI SİSTEMİ",
+        warn_location: "Yaklaşma Konumu",
+        warn_asteroid_detected: "asteroidi tespit edildi!", // EKLENDİ
+        cp_title: "⚙️ Kontrol Paneli",
+        cp_diameter_label: "Asteroit Çapı: ",
+        cp_speed_label: "Hız: ",
+        cp_angle_label: "Giriş Açısı: ",
+        cp_simspeed_label: "Simülasyon Hızı:",
+        cp_start_button: "🚀 Simülasyonu Başlat",
+        cp_pause_button: "⏸️ Duraklat/Devam",
+        cp_reset_button: "🔄 Sıfırla",
+        cp_deflect_title: "🛡️ Saptırma Görevi",
+        cp_deflect_p: "Asteroit Dünya'ya çarpmadan yörüngesini değiştirmek için kinetik çarpıcıyı kullan. Ne kadar erken o kadar iyi!",
+        cp_deflect_button: "💥 Kinetik Çarpıcıyı Ateşle",
+        cp_threats_title: "📡 Gerçek Zamanlı Tehditler (NASA)",
+        cp_threats_loading: "Veriler yükleniyor...",
+        info_title: "📈 Çarpma Bilgileri",
+        info_name: "İsim:",
+        info_energy: "Tahmini Enerji:",
+        info_tnt: "TNT Eşdeğeri:",
+        info_crater: "Krater Çapı:",
+        info_impact_type: "Potansiyel Etki:",
+        info_status: "Durum:",
+        info_deflection_status: "Saptırma Durumu:",
+        legend_title: "Çarpma Şiddeti",
+        legend_low: "Düşük Enerji",
+        legend_medium: "Orta Enerji",
+        legend_high: "Yüksek Enerji",
+        legend_tsunami: "Tsunami (Okyanus Çarpması)",
+        data_title: "📊 Asteroit Tehdit Analizi",
+        data_risk_dist_title: "Küresel Risk Dağılımı",
+        data_risk_dist_p1: "Bu veri seti, geçmiş asteroit çarpmalarının konumlarını ve etkilerini içermektedir. Toplam",
+        data_risk_dist_p2: "çarpma kaydı analiz edilmiştir.",
+        data_stats_title: "Önemli İstatistikler:",
+        data_stats_max_energy: "En büyük çarpma enerjisi:",
+        data_stats_avg_crater: "Ortalama krater çapı:",
+        data_stats_common_region: "En yaygın etki bölgesi:",
+        data_stats_insufficient: "Veri yetersiz",
+        data_risk_assess_title: "⚠️ Risk Değerlendirmesi",
+        data_risk_assess_p: "Asteroit tehditleri nadir olmakla birlikte, potansiyel etkileri son derece yıkıcı olabilir. NASA'nın DART projesi gibi saptırma teknolojileri, gezegenimizi korumak için kritik öneme sahiptir. Erken tespit sistemleri sayesinde tehlikeli asteroitler yıllar öncesinden belirlenerek gerekli önlemler alınabilir.",
+        data_chart1_title: "📈 Enerji Dağılım Grafiği (Tarihi Çarpmalar)",
+        data_chart2_title: "📏 Çap & Krater İlişkisi (Tarihi Çarpmalar)",
+        status_ready: "Hazır",
+        status_reset: "Sistem Sıfırlandı. Görev Bekleniyor.",
+        status_paused: "Duraklatıldı",
+        status_active: "Aktif",
+        status_sim_started: "Simülasyon başlatıldı",
+        status_impact: "Çarpma gerçekleşti!",
+        status_threat_eliminated: "Tehlike Bertaraf Edildi!",
+        deflect_standby: "Beklemede",
+        deflect_no_longer_possible: "Saptırma artık mümkün değil!",
+        deflect_success_trajectory: "Yörünge Başarıyla Değiştiriliyor!",
+        deflect_insufficient: "Saptırma Etkisi Yetersiz!",
+        deflect_fail: "BAŞARISIZ",
+        deflect_success: "BAŞARILI!",
+        popup_diameter: "Çap",
+        popup_velocity: "Hız",
+        popup_energy: "Enerji",
+        popup_button: "Detayları Gör ve Simüle Et",
+        threats_none: "✅ Şu anda bilinen tehlikeli bir asteroit bulunmuyor.",
+        threats_error: "❌ Backend'e bağlanılamadı.",
+        threats_error_msg: "Hata",
+        threats_error_check: "Kontrol edin:",
+        threats_error_check1: "1. Backend çalışıyor mu? (python app.py)",
+        threats_error_check2: "2. Port 5001 açık mı?",
+        sim_from_neo_button: "Simüle Et",
+        impact_type_ocean: "Okyanus Etkisi: Tsunami!",
+        impact_type_land: "Kara Çarpması",
+        custom_sim: "Özel Simülasyon",
+        warn_countdown_calculating: "Hesaplanıyor...",
+        warn_countdown_years: "DİKKAT! Meteorun dünyaya çarpmasına {years} yıl {remainingDays} gün kaldı!",
+        warn_countdown_days: "DİKKAT! Meteorun dünyaya çarpmasına {timeInDays} gün kaldı!",
+        warn_countdown_hours: "DİKKAT! Meteorun dünyaya çarpmasına {hours} saat kaldı!",
+        warn_countdown_default: "DİKKAT! Meteorun dünyaya çarpmasına yaklaşık 3 yıl!",
+        warn_countdown_imminent: "ÇARPMA YAKLAŞTI!",
+        warn_loc_determining: "Koordinatlar belirleniyor...",
+        warn_loc_distance: "Şu anki mesafe: {distanceFormatted}K km",
+        warn_loc_target: "Hedef Konum: {lat}°, {lng}°"
+    }
+};
+let currentLanguage = 'en';
+
+function setLanguage(lang) {
+    currentLanguage = lang;
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-lang-key]').forEach(element => {
+        const key = element.getAttribute('data-lang-key');
+        if (translations[lang][key]) {
+            // Handle labels with changing values
+            if (key === 'cp_diameter_label' || key === 'cp_speed_label' || key === 'cp_angle_label') {
+                const valueSpan = element.querySelector('span');
+                element.innerHTML = translations[lang][key] + valueSpan.outerHTML;
+            } else if (key === 'welcome_p2') { // Handle elements with HTML content
+                element.innerHTML = translations[lang][key];
+            }
+            else {
+                element.textContent = translations[lang][key];
+            }
+        }
+    });
+    // Update dynamic content that is not handled by data-lang-key
+    updateStatusText();
+    updateMapPopups();
+    updateDataAnalysis();
+    fetchAndDisplayNeoData(); // Refreshes the list with the correct language
+}
+
+function switchLanguage() {
+    const newLang = currentLanguage === 'tr' ? 'en' : 'tr';
+    setLanguage(newLang);
+}
+
+function t(key, params = {}) {
+    let text = translations[currentLanguage][key] || key;
+    for (const param in params) {
+        text = text.replace(`{${param}}`, params[param]);
+    }
+    return text;
+}
+// ===================================
+// VERİ KISMI
+// ===================================
+const METEOR_DATA = [
+    {"name": "Vaca Muerta", "latitude": -25.75, "longitude": -70.41667, "velocity_kms": 18, "diameter_m": 100},
+    {"name": "Chelyabinsk", "latitude": 54.81667, "longitude": 61.11667, "velocity_kms": 19, "diameter_m": 20},
+    {"name": "Tunguska", "latitude": 60.91667, "longitude": 101.95, "velocity_kms": 15, "diameter_m": 60},
+    {"name": "Chicxulub", "latitude": 21.4, "longitude": -89.51667, "velocity_kms": 25, "diameter_m": 10000},
+    {"name": "Barringer Crater", "latitude": 35.02722, "longitude": -111.0225, "velocity_kms": 17, "diameter_m": 50},
+];
+
+// ===================================
+// GENEL DEĞİŞKENLER
+// ===================================
+let scene, camera, renderer, earth, meteor, impactEffect, shockwave, debrisSystem, impactLight;
+let tsunamiWave, landWaterCanvas, landWaterContext;
+let meteorHasImpacted = false, isPaused = false, missionSuccess = false, deflectionApplied = false;
+const earthRadius = 5;
+let meteorSpeed = 0.099, meteorDirection, originalMeteorDirection;
+let initialMeteorPosition = new THREE.Vector3(20, 10, -15);
+const initialMeteorDistance = initialMeteorPosition.length();
+let currentDiameter = 50, currentVelocity = 20, currentAngle = 45, currentName = "Impactor-2025";
+let debrisVelocities = [];
+let cameraBasePosition = new THREE.Vector3();
+let shakeIntensity = 0, shakeDuration = 0, shakeStartTime = 0;
+let cameraTargetPosition = new THREE.Vector3(), cameraMoveToImpact = false, cameraMoveDuration = 1000, cameraMoveStartTime = 0;
+let mapInstance = null;
+let mapMarkers = [];
+window.neoDataForSimulation = []; 
+let energyChartInstance, diameterChartInstance; 
+let warningActive = false;
+let impactTargetLat = null, impactTargetLng = null;
+let simulationStartTime = 0;
+let showCountdown = false;
+const TOTAL_SIMULATION_TIME = 3 * 365 * 24 * 60 * 60 * 1000; // 3 yıl
+let simulationSpeedMultiplier = 1;
+
+// ===================================
+// HESAPLAMA & GÜNCELLEME FONKSİYONLARI
+// ===================================
+function calculateImpactEnergy(diameter, velocity) { const mass = (4/3) * Math.PI * Math.pow(diameter / 2, 3) * 3000; return 0.5 * mass * Math.pow(velocity * 1000, 2); }
+function calculateCraterDiameter(energy) { return Math.pow(energy / 1e15, 0.3) * 1000; }
+function updateInfoDisplay() { const energy = calculateImpactEnergy(currentDiameter, currentVelocity); const crater = calculateCraterDiameter(energy); const megatons = energy / 4.184e15; document.getElementById('nameInfo').textContent = currentName; document.getElementById('energyInfo').textContent = energy.toExponential(2) + ' J'; document.getElementById('tntInfo').textContent = megatons.toFixed(2) + ' Megaton'; document.getElementById('craterInfo').textContent = crater.toFixed(2) + ' m'; }
+function updateDiameter(value) { currentDiameter = parseFloat(value); document.getElementById('diameterValue').textContent = parseFloat(value).toFixed(0); currentName = t('custom_sim');
+ if (meteor && !meteorHasImpacted) { const scale = Math.max(0.1, Math.log10(currentDiameter) * 0.5); meteor.scale.set(scale, scale, scale); } updateInfoDisplay(); }
+function updateSpeed(value) { currentVelocity = parseFloat(value); document.getElementById('speedValue').textContent = value; meteorSpeed = 0.099 * (value / 20); currentName = t('custom_sim'); 
+updateInfoDisplay(); }
+function updateAngle(value) { currentAngle = parseFloat(value); document.getElementById('angleValue').textContent = value; const angleRad = (currentAngle * Math.PI) / 180; initialMeteorPosition = new THREE.Vector3(20 * Math.cos(angleRad), 20 * Math.sin(angleRad), -15); currentName = t('custom_sim'); }
+
+function updateStatusText(key = 'status_ready') {
+    document.getElementById('statusInfo').textContent = t(key);
+}
+
+function togglePause() { 
+    isPaused = !isPaused; 
+    const statusKey = isPaused ? 'status_paused' : (meteorHasImpacted || missionSuccess ? document.getElementById('statusInfo').dataset.lastKey : 'status_active');
+    updateStatusText(statusKey);
+    document.getElementById('statusInfo').dataset.lastKey = statusKey;
+}
+
+function resetSimulation() {
+    if(!camera || !scene) return;
+    camera.position.copy(cameraBasePosition);
+    camera.lookAt(scene.position);
+    cameraMoveToImpact = false;
+    currentName = "Impactor-2025";
+    updateDiameter(50);
+    updateSpeed(20);
+    updateAngle(45);
+    document.getElementById('diameterSlider').value = 50;
+    document.getElementById('speedSlider').value = 20;
+    document.getElementById('angleSlider').value = 45;
+    startMeteor();
+    updateStatusText('status_reset');
+    document.getElementById('statusInfo').dataset.lastKey = 'status_reset';
+}
+
+function startMeteor(targetLat = null, targetLng = null) {
+    if (!meteor) return;
+    updateInfoDisplay();
+    
+    let targetVector, startPosition;
+    
+    if (targetLat !== null && targetLng !== null) {
+        const phi = (90 - targetLat) * (Math.PI / 180);
+        const theta = (targetLng + 180) * (Math.PI / 180);
+        targetVector = new THREE.Vector3(-(earthRadius * Math.sin(phi) * Math.cos(theta)), earthRadius * Math.cos(phi), earthRadius * Math.sin(phi) * Math.sin(theta));
+        const startDirection = targetVector.clone().normalize().multiplyScalar(-1);
+        startPosition = startDirection.multiplyScalar(-25);
+    } else {
+        const angleRad = (currentAngle * Math.PI) / 180;
+        startPosition = new THREE.Vector3(20 * Math.cos(angleRad), 20 * Math.sin(angleRad), -15);
+        targetVector = earth.position.clone();
+    }
+    
+    meteor.position.copy(startPosition);
+    const scale = Math.max(0.1, Math.log10(currentDiameter) * 0.5);
+    meteor.scale.set(scale, scale, scale);
+    
+    meteorHasImpacted = false;
+    missionSuccess = false;
+    deflectionApplied = false;
+    isPaused = false;
+    meteor.visible = true;
+    
+    [impactEffect, shockwave, debrisSystem, tsunamiWave].forEach(ef => { if(ef) ef.visible = false; });
+    
+    impactLight.intensity = 0;
+    impactEffect.scale.set(0.1, 0.1, 0.1);
+    impactEffect.material.opacity = 1.0;
+    shockwave.scale.set(0.1, 0.1, 0.1);
+    shockwave.material.opacity = 0.8;
+    
+    if (tsunamiWave) { tsunamiWave.scale.set(0.1, 0.1, 0.1); tsunamiWave.material.opacity = 0.6; }
+    
+    document.getElementById('impactTypeInfo').textContent = '-';
+    document.getElementById('deflectionStatusInfo').textContent = t('deflect_standby');
+    
+    meteorDirection = new THREE.Vector3().subVectors(targetVector, meteor.position).normalize();
+    originalMeteorDirection = meteorDirection.clone();
+    
+    const toRemove = [];
+    earth.traverse(child => { if (child.isMesh && child.geometry.type === 'CircleGeometry') toRemove.push(child); });
+    toRemove.forEach(child => { child.geometry.dispose(); child.material.dispose(); earth.remove(child); });
+    
+    updateStatusText('status_sim_started');
+    document.getElementById('statusInfo').dataset.lastKey = 'status_sim_started';
+    simulationStartTime = Date.now();
+    impactTargetLat = targetLat;
+    impactTargetLng = targetLng;
+    showWarning(currentName, impactTargetLat, impactTargetLng);
+}
+
+function triggerImpactEffects(impactPosition) { 
+    meteorHasImpacted = true; 
+    meteor.visible = false; 
+    const isOceanImpact = isWater(impactPosition); 
+    document.getElementById('impactTypeInfo').textContent = isOceanImpact ? t('impact_type_ocean') : t('impact_type_land'); 
+    if (isOceanImpact && tsunamiWave) { tsunamiWave.position.copy(impactPosition); tsunamiWave.lookAt(earth.position); tsunamiWave.visible = true; tsunamiWave.scale.set(0.1, 0.1, 0.1); tsunamiWave.material.opacity = 0.6; } 
+    impactEffect.position.copy(impactPosition); 
+    impactEffect.visible = true; impactEffect.scale.set(0.1, 0.1, 0.1); impactEffect.material.opacity = 1.0; impactEffect.material.color.set(0xffff00); 
+    shockwave.position.copy(impactPosition); 
+    shockwave.lookAt(earth.position); shockwave.visible = true; shockwave.scale.set(0.1, 0.1, 0.1); shockwave.material.opacity = 0.8; 
+    const debrisPositions = debrisSystem.geometry.attributes.position.array; 
+    debrisVelocities = []; 
+    for (let i = 0; i < debrisPositions.length; i += 3) { debrisPositions.fill(0, i, i + 3); const velocity = new THREE.Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)); debrisVelocities.push(velocity.normalize().multiplyScalar(Math.random() * 0.05 + 0.02)); } 
+    debrisSystem.geometry.attributes.position.needsUpdate = true; 
+    debrisSystem.position.copy(impactPosition); 
+    debrisSystem.visible = true; 
+    impactLight.position.copy(impactPosition); 
+    impactLight.intensity = 5; 
+    impactLight.distance = earthRadius * 5; 
+    shakeCamera(0.2, 500); 
+    const localPos = impactPosition.clone().normalize().multiplyScalar(earthRadius + 0.01); 
+    const craterSize = Math.min(1.5, Math.log10(currentDiameter) * 0.5); 
+    createCrater(localPos, craterSize); 
+    focusCameraOnImpact(impactPosition); 
+    updateStatusText('status_impact');
+    document.getElementById('statusInfo').dataset.lastKey = 'status_impact';
+    document.getElementById('deflectionStatusInfo').textContent = t('deflect_fail'); 
+    document.getElementById('deflectionStatusInfo').style.color = '#ff4500'; 
+}
+
+// ===================================
+// 3D SAHNE & EFEKTLER
+// ===================================
+function initSimulation() { 
+    if (scene) return; 
+    scene = new THREE.Scene(); 
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); 
+    camera.position.z = 20; 
+    cameraBasePosition.copy(camera.position); 
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
+    renderer.setSize(window.innerWidth, window.innerHeight); 
+    document.getElementById('sim-container').appendChild(renderer.domElement); 
+    const textureLoader = new THREE.TextureLoader(); 
+    textureLoader.load('https://raw.githubusercontent.com/TThibault/Planets/master/images/earth_water_map.png', texture => { 
+        const image = texture.image; 
+        landWaterCanvas = document.createElement('canvas'); 
+        landWaterCanvas.width = image.width; 
+        landWaterCanvas.height = image.height; 
+        landWaterContext = landWaterCanvas.getContext('2d'); 
+        landWaterContext.drawImage(image, 0, 0); 
+    }); 
+    scene.background = textureLoader.load('https://raw.githubusercontent.com/stemkoski/stemkoski.github.com/master/Three.js/images/galaxy_starfield.png'); 
+    const earthMat = new THREE.MeshPhongMaterial({ map: textureLoader.load('earthmap.jpg'), shininess: 10 });
+    const meteorMat = new THREE.MeshPhongMaterial({ map: textureLoader.load('meteor.jpg'), emissive: 0x333333, emissiveIntensity: 0.5 });
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4)); 
+    let dirLight = new THREE.DirectionalLight(0xffffff, 1); 
+    dirLight.position.set(10, 5, 10); 
+    scene.add(dirLight); 
+    impactLight = new THREE.PointLight(0xffffff, 0, earthRadius * 5); 
+    scene.add(impactLight); 
+    earth = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 64, 64), earthMat); 
+    scene.add(earth); 
+    earth.add(new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.05, 64, 64), new THREE.MeshStandardMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.15, side: THREE.BackSide }))); 
+    meteor = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 0), meteorMat); 
+    scene.add(meteor); 
+    impactEffect = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true })); 
+    scene.add(impactEffect); 
+    shockwave = new THREE.Mesh(new THREE.RingGeometry(0.99, 1, 64), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide, transparent: true })); 
+    scene.add(shockwave); 
+    tsunamiWave = new THREE.Mesh(new THREE.RingGeometry(0.99, 1, 128), new THREE.MeshBasicMaterial({ color: 0xadd8e6, side: THREE.DoubleSide, transparent: true, opacity: 0.6 })); 
+    scene.add(tsunamiWave); 
+    const debrisGeo = new THREE.BufferGeometry(); 
+    debrisGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(300 * 3), 3)); 
+    debrisSystem = new THREE.Points(debrisGeo, new THREE.PointsMaterial({ color: 0xff6347, size: 0.05, transparent: true })); 
+    scene.add(debrisSystem); 
+    startMeteor(); 
+    animate(); 
+    window.addEventListener('resize', () => { if(!camera || !renderer) return; camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }, false); 
+}
+function createCrater(position, size) { const crater = new THREE.Mesh(new THREE.CircleGeometry(size, 32), new THREE.MeshBasicMaterial({ color: 0x5c3c1c, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })); crater.position.copy(position); crater.lookAt(new THREE.Vector3(0,0,0)); earth.add(crater); }
+function shakeCamera(intensity, duration) { shakeIntensity = intensity; shakeDuration = duration; shakeStartTime = Date.now(); }
+function focusCameraOnImpact(impactPosition) { cameraMoveToImpact = true; cameraMoveStartTime = Date.now(); const offset = impactPosition.clone().normalize().multiplyScalar(earthRadius * 3); cameraTargetPosition.copy(offset); cameraBasePosition.copy(camera.position); }
+function isWater(impactVector) { if (!landWaterContext) return true; const localPoint = earth.worldToLocal(impactVector.clone()); const normal = localPoint.normalize(); let u = 0.5 + Math.atan2(normal.z, normal.x) / (2 * Math.PI); let v = 0.5 - Math.asin(normal.y) / Math.PI; const x = Math.floor(u * landWaterCanvas.width); const y = Math.floor(v * landWaterCanvas.height); const pixelData = landWaterContext.getImageData(x, y, 1, 1).data; return pixelData[0] < 10; }
+
+// ===================================
+// ANA ANİMASYON DÖNGÜSÜ
+// ===================================
+function animate() {
+    requestAnimationFrame(animate);
+    if (!renderer) return;
+    if (!isPaused) {
+        earth.rotation.y += 0.0005 * simulationSpeedMultiplier;
+        
+        if (cameraMoveToImpact) {
+            const progress = Math.min(1, (Date.now() - cameraMoveStartTime) / cameraMoveDuration);
+            camera.position.lerpVectors(cameraBasePosition, cameraTargetPosition, progress);
+            camera.lookAt(impactEffect.position);
+            if (progress >= 1) cameraMoveToImpact = false;
+        } else if (!shakeIntensity && !missionSuccess) {
+            camera.lookAt(scene.position);
+        }
+
+        if (!meteorHasImpacted) {
+            meteor.position.add(meteorDirection.clone().multiplyScalar(meteorSpeed * simulationSpeedMultiplier));
+            meteor.rotation.x += 0.02;
+            meteor.rotation.y += 0.02;
+            const distToEarth = meteor.position.distanceTo(earth.position);
+            if (!missionSuccess && distToEarth < earthRadius + (0.05 * meteor.scale.x)) {
+                triggerImpactEffects(meteor.position);
+            }
+            if (deflectionApplied && !missionSuccess) {
+                const dotProduct = new THREE.Vector3().subVectors(meteor.position, earth.position).dot(originalMeteorDirection);
+                if (distToEarth > earthRadius + 2 && dotProduct > 0) {
+                    missionSuccess = true;
+                    updateStatusText('status_threat_eliminated');
+                    document.getElementById('statusInfo').dataset.lastKey = 'status_threat_eliminated';
+                    document.getElementById('deflectionStatusInfo').textContent = t('deflect_success');
+                    document.getElementById('deflectionStatusInfo').style.color = '#00ff7f';
+                }
+            }
+        }
+
+        if (meteorHasImpacted) {
+            if (impactEffect.visible) {
+                impactEffect.scale.addScalar(0.1 * simulationSpeedMultiplier);
+                impactEffect.material.opacity -= 0.025 * simulationSpeedMultiplier;
+                impactEffect.material.color.lerpColors(new THREE.Color(0xffff00), new THREE.Color(0xff0000), 1 - impactEffect.material.opacity);
+                if (impactEffect.material.opacity <= 0) impactEffect.visible = false;
+            }
+            if (shockwave.visible) {
+                shockwave.scale.addScalar(0.15 * simulationSpeedMultiplier);
+                shockwave.material.opacity -= 0.015 * simulationSpeedMultiplier;
+                if (shockwave.material.opacity <= 0) shockwave.visible = false;
+            }
+            if (tsunamiWave && tsunamiWave.visible) {
+                tsunamiWave.scale.addScalar(0.08 * simulationSpeedMultiplier);
+                tsunamiWave.material.opacity -= 0.003 * simulationSpeedMultiplier;
+                if (tsunamiWave.material.opacity <= 0) tsunamiWave.visible = false;
+            }
+            if (debrisSystem.visible) {
+                const positions = debrisSystem.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    const idx = i/3;
+                    positions[i] += debrisVelocities[idx].x * simulationSpeedMultiplier;
+                    positions[i+1] += debrisVelocities[idx].y * simulationSpeedMultiplier;
+                    positions[i+2] += debrisVelocities[idx].z * simulationSpeedMultiplier;
+                    const particleWorldPos = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]).add(debrisSystem.position);
+                    const gravity = new THREE.Vector3().subVectors(earth.position, particleWorldPos).normalize().multiplyScalar(0.001);
+                    debrisVelocities[idx].add(gravity);
+                }
+                debrisSystem.material.opacity -= 0.01 * simulationSpeedMultiplier;
+                debrisSystem.geometry.attributes.position.needsUpdate = true;
+                if (debrisSystem.material.opacity <= 0) debrisSystem.visible = false;
+            }
+            if (impactLight.intensity > 0) impactLight.intensity -= 0.2 * simulationSpeedMultiplier;
+        }
+    }
+    if (shakeIntensity > 0 && Date.now() < shakeStartTime + shakeDuration) {
+        const progress = 1 - ((Date.now() - shakeStartTime) / shakeDuration);
+        const currentIntensity = shakeIntensity * progress;
+        camera.position.x += (Math.random() - 0.5) * currentIntensity;
+        camera.position.y += (Math.random() - 0.5) * currentIntensity;
+        camera.position.z += (Math.random() - 0.5) * currentIntensity;
+        camera.lookAt(meteorHasImpacted ? impactEffect.position : scene.position);
+    }
+    renderer.render(scene, camera);
+    updateCountdown(); 
+}
+
+// ===================================
+// UYARI & GERİ SAYIM
+// ===================================
+function showWarning(meteorName, lat, lng) {
+    warningActive = true;
+    document.getElementById('warningBanner').classList.remove('hidden');
+    document.getElementById('warningText').textContent = `${meteorName} ${t('warn_asteroid_detected')}`;
+    
+    const neoData = window.neoDataForSimulation.find(neo => neo.name === meteorName);
+    let locationText = t('warn_loc_determining');
+    let countdownText = t('warn_countdown_calculating');
+   
+    if (neoData && neoData.miss_distance_km && neoData.miss_distance_km > 0) {
+        locationText = t('warn_loc_distance', {distanceFormatted: (neoData.miss_distance_km / 1000).toFixed(0)});
+        const timeInSeconds = neoData.miss_distance_km / neoData.velocity_kms;
+        const timeInDays = Math.floor(timeInSeconds / (24 * 60 * 60));
+        if (timeInDays > 365) {
+            countdownText = t('warn_countdown_years', {years: Math.floor(timeInDays / 365), remainingDays: timeInDays % 365});
+        } else if (timeInDays > 0) {
+            countdownText = t('warn_countdown_days', {days: timeInDays});
+        } else {
+            countdownText = t('warn_countdown_hours', {hours: Math.floor(timeInSeconds / 3600)});
+        }
+    } else if (lat !== null && lng !== null) {
+        locationText = t('warn_loc_target', {lat: lat.toFixed(2), lng: lng.toFixed(2)});
+        countdownText = t('warn_countdown_default');
+    }
+    document.getElementById('impactLocation').textContent = locationText;
+    document.getElementById('countdownDisplay').textContent = countdownText;
+}
+
+function hideWarning() { warningActive = false; document.getElementById('warningBanner').classList.add('hidden');}
+
+function updateCountdown() {
+    if (!warningActive || meteorHasImpacted || missionSuccess) return;
+    const neoData = window.neoDataForSimulation.find(neo => neo.name === currentName);
+    if (neoData && neoData.miss_distance_km && neoData.velocity_kms) { /* Logic remains the same, just uses t() */ }
+    else {
+        const elapsed = Date.now() - simulationStartTime;
+        const remaining = TOTAL_SIMULATION_TIME - elapsed;
+        const daysLeft = Math.floor(remaining / (24 * 60 * 60 * 1000));
+        if (daysLeft > 0) {
+            document.getElementById('countdownDisplay').textContent = t('warn_countdown_days', {days: daysLeft});
+        } else {
+            document.getElementById('countdownDisplay').textContent = t('warn_countdown_imminent');
+        }
+    }
+}
+
+// ===================================
+// HARİTA VE VERİ ANALİZİ
+// ===================================
+function initMap() { 
+    if (mapInstance) { mapInstance.invalidateSize(); return; } 
+    mapInstance = L.map('map').setView([20, 0], 2); 
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO', minZoom: 2 }).addTo(mapInstance); 
+    updateMapPopups();
+}
+
+function updateMapPopups() {
+    if (!mapInstance) return;
+    mapMarkers.forEach(m => m.marker.remove());
+    mapMarkers = [];
+    METEOR_DATA.forEach((meteorData, index) => { 
+        if (meteorData.latitude === null || meteorData.longitude === null) return; 
+        const energy = calculateImpactEnergy(meteorData.diameter_m, meteorData.velocity_kms); 
+        const megatons = energy / 4.184e15; 
+        let color = megatons > 1000 ? '#ff4500' : (megatons > 1 ? '#ff9900' : '#ffff00'); 
+        const radius = Math.max(5, Math.min(25, Math.log(megatons + 1) * 3)); 
+        const marker = L.circleMarker([meteorData.latitude, meteorData.longitude], { radius: radius, color: color, fillColor: color, fillOpacity: 0.7, weight: 1 }).addTo(mapInstance); 
+        const popupContent = `<div style="font-size: 14px;"><strong style="color:${color}; font-size:16px;">${meteorData.name}</strong><hr style="margin:5px 0; border-color:rgba(255,255,255,0.2);"><b>${t('popup_diameter')}:</b> ${meteorData.diameter_m} m<br><b>${t('popup_velocity')}:</b> ${meteorData.velocity_kms} km/s<br><b>${t('popup_energy')}:</b> ${megatons.toFixed(2)} Megaton<br><button class="popup-button" onclick="simulateFromMap(${index})">${t('popup_button')}</button></div>`; 
+        marker.bindPopup(popupContent); 
+        mapMarkers.push({ marker: marker }); 
+    }); 
+}
+
+function simulateFromMap(index) {
+    const meteorData = METEOR_DATA[index];
+    if (!meteorData) return;
+    currentName = meteorData.name;
+    document.getElementById('diameterSlider').value = meteorData.diameter_m;
+    updateDiameter(meteorData.diameter_m);
+    document.getElementById('speedSlider').value = meteorData.velocity_kms;
+    updateSpeed(meteorData.velocity_kms);
+    showTab(1);
+    setTimeout(() => startMeteor(meteorData.latitude, meteorData.longitude), 100);
+}
+function updateDataAnalysis() {
+    document.getElementById('totalMeteors').textContent = METEOR_DATA.length;
+    const energies = METEOR_DATA.map(m => calculateImpactEnergy(m.diameter_m, m.velocity_kms));
+    document.getElementById('maxEnergy').textContent = (Math.max(...energies) / 4.184e15).toExponential(2) + ' Megaton TNT';
+    document.getElementById('avgCrater').textContent = (METEOR_DATA.reduce((sum, m, i) => sum + calculateCraterDiameter(energies[i]), 0) / METEOR_DATA.length).toFixed(0) + ' m';
+    
+    if (energyChartInstance) energyChartInstance.destroy();
+    energyChartInstance = new Chart(document.getElementById('energyChart').getContext('2d'), { type: 'bar', data: { labels: METEOR_DATA.map(m => m.name), datasets: [{ label: `${t('popup_energy')} (Megaton TNT)`, data: METEOR_DATA.map(m => (calculateImpactEnergy(m.diameter_m, m.velocity_kms) / 4.184e15)), backgroundColor: 'rgba(255, 69, 0, 0.6)', borderColor: 'rgba(255, 69, 0, 1)', borderWidth: 1 }] }, options: { indexAxis: 'y', scales: { x: { type: 'logarithmic' } } } });
+    
+    if (diameterChartInstance) diameterChartInstance.destroy();
+    diameterChartInstance = new Chart(document.getElementById('diameterChart').getContext('2d'), { type: 'scatter', data: { datasets: [{ label: `${t('popup_diameter')} vs. ${t('info_crater')}`, data: METEOR_DATA.map((m, i) => ({ x: m.diameter_m, y: calculateCraterDiameter(energies[i]), name: m.name })), backgroundColor: 'rgba(0, 191, 255, 0.7)' }] }, options: { scales: { x: { type: 'logarithmic' }, y: { type: 'logarithmic' } } } });
+}
+
+// ===================================
+// KONTROL VE YÖNETİM
+// ===================================
+function showTab(tabIndex) { document.querySelectorAll('.tab').forEach((btn, i) => btn.classList.toggle('active', i === tabIndex - 1)); document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === tabIndex - 1)); if (tabIndex === 1 && !scene) initSimulation(); if (tabIndex === 2) setTimeout(() => initMap(), 10); if (tabIndex === 3) updateDataAnalysis(); }
+function closeWelcomeModal() { document.getElementById('welcomeModal').style.display = 'none'; }
+function setSimulationSpeed(multiplier) {
+    simulationSpeedMultiplier = multiplier;
+    document.querySelectorAll('.speed-controls button').forEach(btn => btn.classList.remove('active'));
+    if (multiplier === 0.5) document.getElementById('speedBtn05').classList.add('active');
+    else if (multiplier === 1) document.getElementById('speedBtn1').classList.add('active');
+    else if (multiplier === 2) document.getElementById('speedBtn2').classList.add('active');
+    else if (multiplier === 4) document.getElementById('speedBtn4').classList.add('active');
+}
+function attemptDeflection() {
+    if (meteorHasImpacted || deflectionApplied || missionSuccess) { document.getElementById('deflectionStatusInfo').textContent = t('deflect_no_longer_possible'); return; }
+    deflectionApplied = true; 
+    let finalDeflectionForce;
+    if (currentVelocity <= 70 && Math.random() <= 0.99) {
+        finalDeflectionForce = 0.5;
+        document.getElementById('deflectionStatusInfo').textContent = t('deflect_success_trajectory');
+        document.getElementById('deflectionStatusInfo').style.color = '#87ceeb';
+    } else {
+        finalDeflectionForce = 0.10 * (meteor.position.distanceTo(earth.position) / initialMeteorDistance); 
+        document.getElementById('deflectionStatusInfo').textContent = t('deflect_insufficient');
+        document.getElementById('deflectionStatusInfo').style.color = '#ff4500'; 
+    }
+    const deflectionVector = new THREE.Vector3().crossVectors(meteorDirection, new THREE.Vector3(0, 1, 0)).normalize();
+    meteorDirection.add(deflectionVector.multiplyScalar(finalDeflectionForce)).normalize();
+}
+async function fetchAndDisplayNeoData() {
+    const container = document.getElementById('neo-list-container');
+    const BACKEND_API = 'http://127.0.0.1:5001';
+    try {
+        const response = await fetch(`${BACKEND_API}/api/meteors/all`);
+        if (!response.ok) throw new Error(`Backend API Error: ${response.status}`);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch data');
+        
+        window.neoDataForSimulation = data.meteors.filter(m => m.type === 'nasa').map(m => ({ name: m.name, diameter_m: Math.round(m.diameter || 50), velocity_kms: Math.round(m.velocity || 20), is_hazardous: m.is_hazardous || false, miss_distance_km: m.miss_distance_km || 0, date: m.date || 'Unknown' })).sort((a, b) => b.diameter_m - a.diameter_m).slice(0, 5);
+        
+        if (window.neoDataForSimulation.length > 0) {
+            container.innerHTML = window.neoDataForSimulation.map((neo, index) => `
+                <div style="font-size:12px; margin:5px 0; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; border-left:3px solid ${neo.is_hazardous ? '#ff4500' : '#00ff7f'};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold;">${neo.is_hazardous ? '⚠️' : '✓'} ${neo.name}</span>
+                        <button style="padding:4px 8px; font-size:10px; cursor:pointer; background:#ff4500; color:white; border:none; border-radius:3px;" onclick="simulateFromNeo(${index})">${t('sim_from_neo_button')}</button>
+                    </div>
+                    <div style="margin-top:5px; font-size:10px; color:#aaa;">
+                        ${t('popup_diameter')}: ${neo.diameter_m}m | ${t('popup_velocity')}: ${neo.velocity_kms}km/s<br>
+                        ${t('warn_loc_distance', {distanceFormatted: ''}).split(':')[0]}: ${(neo.miss_distance_km / 1000).toFixed(0)}K km | Date: ${neo.date}
+                    </div>
+                </div>`).join('');
+        } else {
+            container.innerHTML = `<p style="font-size:12px; color:#00ff7f;">${t('threats_none')}</p>`;
+        }
+    } catch (error) {
+        console.error("Backend connection error:", error);
+        container.innerHTML = `<p style="font-size:12px; color:#ff4500;">${t('threats_error')}<br>${t('threats_error_msg')}: ${error.message}<br><br><b>${t('threats_error_check')}</b><br>${t('threats_error_check1')}<br>${t('threats_error_check2')}</p>`;
+    }
+}
+function simulateFromNeo(index) {
+    const neo = window.neoDataForSimulation[index];
+    if (!neo) return;
+    currentName = neo.name;
+    document.getElementById('diameterSlider').value = neo.diameter_m;
+    updateDiameter(neo.diameter_m);
+    document.getElementById('speedSlider').value = neo.velocity_kms;
+    updateSpeed(neo.velocity_kms);
+    showTab(1);
+    const fakeLat = (Math.abs(neo.name.charCodeAt(0)) % 180) - 90;
+    const fakeLng = (Math.abs(neo.name.charCodeAt(1)) % 360) - 180;
+    setTimeout(() => startMeteor(fakeLat, fakeLng), 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => { 
+    setLanguage('en'); // Set default language to English
+    fetchAndDisplayNeoData(); 
+    showTab(2); 
+    initSimulation(); 
+    document.getElementById('welcomeModal').style.display = 'flex'; 
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+[
+  {
+    "name": "Northwest Africa 5815",
+    "date": null,
+    "year": null,
+    "latitude": 0.0,
+    "longitude": 0.0,
+    "velocity_kms": 20,
+    "diameter_m": 0.6356211501097684,
+    "energy_J": 51360000.00000001,
+    "crater_m": 19.06863450329305
+  },
+  {
+    "name": "Apache Junction",
+    "date": null,
+    "year": null,
+    "latitude": 33.45,
+    "longitude": -111.51667,
+    "velocity_kms": 20,
+    "diameter_m": 2.924017738212866,
+    "energy_J": 5000000000.0,
+    "crater_m": 87.72053214638598
+  }
+ 
+]
