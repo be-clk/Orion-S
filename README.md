@@ -1,20 +1,20 @@
 
 ````markdown
-# Orion-S 🚀
+Orion-S 🚀
 
 NASA Space Apps Hackathon kapsamında geliştirdiğimiz **Orion-S** ile **3. olduk**.  
 Canlı demo: **https://orion-s.vercel.app**
 
 ---
 
-## 🔍 Proje Hakkında
+🔍 Proje Hakkında
 
-Orion-S, [projenizin amacı — örneğin: “küçük uydu veri toplama ve görselleştirme”, “meteor izleme sistemi”, “uzay ortamı simülasyonu” vb.] amaçlarına hizmet eden, kullanıcı dostu bir web uygulamasıdır.  
+Orion-S, [“küçük uydu veri toplama ve görselleştirme”, “meteor izleme sistemi”, “uzay ortamı simülasyonu” vb.] amaçlarına hizmet eden, kullanıcı dostu bir web uygulamasıdır.  
 Hem frontend hem backend bileşenleriyle bütünleşik çalışır ve kullanıcıların veri yüklemesine, görselleştirmesine ve analiz etmesine olanak tanır.
 
 ---
 
-## 🌐 Canlı Site
+ 🌐 Canlı Site
 
 Uygulamayı canlı olarak deneyebilirsin:
 
@@ -22,7 +22,7 @@ Uygulamayı canlı olarak deneyebilirsin:
 
 ---
 
-## ✅ Özellikler
+✅ Özellikler
 
 - Gerçek zamanlı veri görselleştirme  
 - Mobil uyumlu ve duyarlı tasarım  
@@ -80,16 +80,16 @@ Aşağıdaki adımlarla proje senin bilgisayarında çalışabilir:
 
 ---
 
-## 🙏 Teşekkür
+🙏 Teşekkür
 
 NASA Space Apps Hackathon’a, destek veren herkese ve bu projede emeği geçen tüm takım arkadaşlarına teşekkür ederiz.
 
 ---
 
-## 📨 İletişim
+📨 İletişim
 
 İstediğin zaman projeyle ilgili sorular sorabilirsin:
 GitHub: [be-clk](https://github.com/be-clk)
-E-posta: `ornek@eposta.com`
+E-posta: `Beyzabeyza2360@gmail.com`
 
 ```
