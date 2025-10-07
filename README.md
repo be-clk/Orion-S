@@ -1,4 +1,8 @@
+Aşağıda doğrudan kopyala-yapıştır yapabileceğin, hazır bir **README.md** şablonu var. İçerikleri (proje adı, özellikler, site adresi, takım üyeleri vb.) kendi projenize göre düzenleyebilirsin.
 
+---
+
+````markdown
 # Orion-S 🚀
 
 NASA Space Apps Hackathon kapsamında geliştirdiğimiz **Orion-S** ile **3. olduk**.  
@@ -79,13 +83,6 @@ Aşağıdaki adımlarla proje senin bilgisayarında çalışabilir:
 
 ---
 
-## 👥 Takım & Katkıda Bulunanlar
-
-* Takım: **Orion-S** (NASA Space Apps)
-* Proje ile katkıda bulunanlar: `İsim1`, `İsim2`, `İsim3`
-
----
-
 ## 🙏 Teşekkür
 
 NASA Space Apps Hackathon’a, destek veren herkese ve bu projede emeği geçen tüm takım arkadaşlarına teşekkür ederiz.
@@ -96,9 +93,6 @@ NASA Space Apps Hackathon’a, destek veren herkese ve bu projede emeği geçen 
 
 İstediğin zaman projeyle ilgili sorular sorabilirsin:
 GitHub: [be-clk](https://github.com/be-clk)
-E-posta: `beyzabeyza2360@gmail.com`
+E-posta: `ornek@eposta.com`
 
 ```
-
----
-
