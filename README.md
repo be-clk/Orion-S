@@ -1,6 +1,3 @@
-Aşağıda doğrudan kopyala-yapıştır yapabileceğin, hazır bir **README.md** şablonu var. İçerikleri (proje adı, özellikler, site adresi, takım üyeleri vb.) kendi projenize göre düzenleyebilirsin.
-
----
 
 ````markdown
 # Orion-S 🚀
