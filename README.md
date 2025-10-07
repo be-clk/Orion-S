@@ -51,7 +51,7 @@ Aşağıdaki adımlarla proje senin bilgisayarında çalışabilir:
    cd Orion-S
 ````
 
-2. (Varsa) Python ortamı oluştur ve bağımlılıkları yükle
+2.  Python ortamı oluştur ve bağımlılıkları yükle
 
    ```bash
    python -m venv venv
